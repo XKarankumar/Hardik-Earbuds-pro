@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">HARDIK BUDS PRO</string>
+    <string name="app_tagline">ULTIMATE PRO V2.0</string>
+    <string name="copyright_notice">© 2026 Hardik Kumar. All Rights Reserved.</string>
+    <string name="notif_channel_connection_name">Earbuds Connection Alerts</string>
+    <string name="notif_channel_connection_desc">Notifications for Bluetooth earbuds connection, disconnection, and popup actions</string>
+    <string name="notif_channel_battery_name">Battery &amp; Low Charge Alerts</string>
+    <string name="notif_channel_battery_desc">Alerts when connected earbuds reach low battery thresholds</string>
+    <string name="notif_channel_playback_name">Media Playback</string>
+    <string name="notif_channel_playback_desc">Background local audio playback and 10-band EQ session</string>
+    <string name="cd_buds_hero">HARDIK BUDS PRO wireless earbuds and metallic charging case</string>
+    <string name="cd_case_closed">HARDIK BUDS PRO closed metallic charging case</string>
+    <string name="cd_back">Navigate back</string>
+    <string name="cd_close">Close</string>
+</resources>

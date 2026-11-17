@@ -1,0 +1,31 @@
+package com.example.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// Luxury Black & Titanium Silver Palette (Dark Mode)
+val ObsidianVoid = Color(0xFF07080B)
+val CarbonSlate = Color(0xFF0F1117)
+val BrushedGraphite = Color(0xFF181C26)
+val AnodizedTitanium = Color(0xFF262C3B)
+val PlatinumSilver = Color(0xFFE5E9F2)
+val ChromeHighlight = Color(0xFFF6F8FC)
+val GunmetalSilver = Color(0xFF9BA5B8)
+val MutedSteel = Color(0xFF6B758A)
+val HairlineChrome = Color(0xFF313847)
+val AcousticIceCyan = Color(0xFF7DD3FC)
+val EmeraldCharge = Color(0xFF34D399)
+val AmberWarning = Color(0xFFFBBF24)
+val CrimsonAlert = Color(0xFFF87171)
+
+// Light Mode Palette (Brushed Aluminum & Frosted Pearl)
+val FrostedPearl = Color(0xFFF3F5F9)
+val PorcelainGlass = Color(0xFFFFFFFF)
+val SilverMist = Color(0xFFE5E9F0)
+val AluminumContainer = Color(0xFFD8DEE9)
+val ObsidianInk = Color(0xFF0F1219)
+val SlateTitanium = Color(0xFF475266)
+val LightHairline = Color(0xFFC9D1DF)
+val AcousticCobalt = Color(0xFF0284C7)
+val EmeraldChargeDark = Color(0xFF059669)
+val AmberWarningDark = Color(0xFFD97706)
+val CrimsonAlertDark = Color(0xFFDC2626)
