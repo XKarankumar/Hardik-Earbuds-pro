@@ -16,3 +16,9 @@
 
 5. **Spatial Audio**
    - Android `AudioManager.getSpatializer()` requires Android 12L/13+ and OEM Spatializer HAL support. Dolby Atmos certification is never claimed unless exposed by the device.
+
+6. **Unauthorized Device Connection Monitoring Scope**
+   - Android exposes active `ACL_CONNECTED`, `A2DP`, and `HFP` connection state transitions for paired/connected audio peripherals. Public Android SDKs do **not** expose failed third-party pairing attempts initiated near your earbuds or passive background discovery of other phones connecting to buds elsewhere. HARDIK BUDS PRO strictly flags connected devices not present in your Trusted Devices allowlist.
+
+7. **Lost Mode Tracking Limitations**
+   - Wireless earbuds (including OnePlus Buds 3 Pro) do not contain cellular modems or GPS receivers. Lost Mode therefore never fabricates fake map coordinates or GPS tracking; it records your last known Bluetooth connection timestamp/battery state, watches for local reconnection events, offers the acoustic Find Earbuds chime, and directs you to Google Find My Device where supported by Fast Pair.

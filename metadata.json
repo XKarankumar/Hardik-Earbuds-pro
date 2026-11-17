@@ -1,6 +1,6 @@
 {
   "name": "HARDIK BUDS PRO",
-  "description": "Ultimate Pro V2.0 — Luxury Black & Silver universal wireless earbuds companion app with OnePlus Nord Buds 3 Pro integration, Media3 audio player, 10-band EQ, Spatial Audio detection, and BLE GATT telemetry.",
+  "description": "Luxury Black & Silver wireless earbuds companion app for OnePlus Buds 3 Pro / Nord Buds 3 Pro with Keystore-backed Owner Lock, BiometricPrompt, No-Gmail Recovery Key, Unauthorized Alerts, Lost Mode, Media3 10-band EQ, and BLE GATT telemetry.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

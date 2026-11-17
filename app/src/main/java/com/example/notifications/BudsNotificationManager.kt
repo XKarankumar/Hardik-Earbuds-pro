@@ -53,9 +53,60 @@ object BudsNotificationManager {
             description = context.getString(R.string.notif_channel_playback_desc)
         }
 
+        val securityChannel = NotificationChannel(
+            AppConstants.CHANNEL_SECURITY,
+            "Owner Security & Anti-Theft Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Alerts for unknown Bluetooth device connections and Lost Mode status"
+            if (customSoundUri != null) {
+                setSound(customSoundUri, audioAttr)
+            }
+        }
+
         manager.createNotificationChannel(connectionChannel)
         manager.createNotificationChannel(batteryChannel)
         manager.createNotificationChannel(playbackChannel)
+        manager.createNotificationChannel(securityChannel)
+    }
+
+    fun showSecurityAlertNotification(
+        context: Context,
+        title: String,
+        message: String
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !PermissionManager.snapshot(context).postNotificationsGranted
+        ) {
+            return
+        }
+        ensureChannels(context)
+
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("open_security", true)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            103,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, AppConstants.CHANNEL_SECURITY)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        runCatching {
+            NotificationManagerCompat.from(context)
+                .notify(AppConstants.NOTIF_ID_SECURITY, notification)
+        }
     }
 
     fun showConnectionNotification(

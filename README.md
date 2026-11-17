@@ -19,8 +19,8 @@ A luxury Obsidian Black + Platinum Silver universal wireless earbuds companion a
 3. **Google Fast Pair & Companion Device Pairing**
    - Uses official Android `CompanionDeviceManager` (`AssociationRequest` with `0xFE2C` Fast Pair BLE filter and Classic Bluetooth filter) + Android system Bluetooth Settings.
 
-4. **Dedicated OnePlus Nord Buds 3 Pro Integration + Multi-Brand Architecture**
-   - Prioritized profile for **OnePlus Nord Buds 3 Pro** plus modular integrations for **Samsung, Sony, JBL, boAt, Realme, Nothing**, and **Generic Bluetooth Audio**.
+4. **Dedicated OnePlus Buds 3 Pro / Nord Buds 3 Pro Integration + Multi-Brand Architecture**
+   - Prioritized flagship profile for **OnePlus Buds 3 Pro** and **OnePlus Nord Buds 3 Pro** plus modular integrations for **Samsung, Sony, JBL, boAt, Realme, Nothing**, and **Generic Bluetooth Audio**.
    - Directly launches **HeyMelody** (`com.heymelody.android` / `com.oplus.melody`) or the respective OEM companion app for proprietary firmware-authenticated ANC/Touch controls.
 
 5. **Bluetooth Device Manager & Live BLE GATT Inspector**
@@ -35,6 +35,14 @@ A luxury Obsidian Black + Platinum Silver universal wireless earbuds companion a
    - Real `AudioManager.getSpatializer()` detection (availability, enabled state, head-tracking hardware, and 5.1 multichannel spatialization eligibility).
    - Battery trend chart and log history via Room + configurable low-battery notification threshold.
    - Stereo-panned `AudioTrack` Find Earbuds acoustic chime (Left / Right / Both) with ear-safety notice.
+
+8. **Owner Security Center & Anti-Theft Suite (Integrated Security Upgrade)**
+   - **Owner Device Registration**: Binds current phone fingerprint, generates a unique cryptographic Owner Key, and encrypts secrets via **Android Keystore AES-256-GCM**.
+   - **Owner Lock PIN & BiometricPrompt**: 4-digit and 6-digit PIN options hashed with salted **PBKDF2-HMAC-SHA256** (120,000 iterations), failed attempt tracking with escalating temporary lockouts, and **Android `BiometricPrompt`** fingerprint verification.
+   - **Forgot PIN (No Gmail)**: Zero email/Gmail verification — cryptographic offline **24-character Recovery Key** verification that resets the PIN and immediately rotates a replacement Recovery Key.
+   - **Trusted Devices & Ownership Transfer**: PIN/Biometric-gated Trusted Device allowlist and verified Ownership Transfer.
+   - **Unauthorized Device Alerts & Security History**: Monitors Android-exposed Bluetooth connection events (ACL / A2DP / HFP), alerts + notifies on unknown connected devices, and records a local Room audit log.
+   - **Lost Mode**: Tracks last known Bluetooth connection details & battery summary, shows recovery steps & acoustic Find Earbuds trigger (without fabricating GPS tracking).
 
 ---
 

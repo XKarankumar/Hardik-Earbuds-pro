@@ -19,13 +19,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.BatteryStd
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothSearching
 import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.GppBad
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.SurroundSound
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Tune
@@ -50,8 +55,10 @@ import com.example.audio.SpatialAudioStatus
 import com.example.bluetooth.BluetoothDashboardState
 import com.example.core.AppConstants
 import com.example.core.PermissionStatusSnapshot
+import com.example.data.preferences.SecurityVaultState
 import com.example.devices.ConnectionState
 import com.example.equalizer.EqualizerUiState
+import com.example.security.SecurityUiState
 import com.example.ui.components.BatteryRingGauge
 import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.MetallicDivider
@@ -80,7 +87,10 @@ fun DashboardScreen(
     onToggleFindEarbuds: (LocatorChannel) -> Unit,
     onNavigateToDevices: () -> Unit,
     onNavigateToStudio: () -> Unit,
-    onNavigateToBattery: () -> Unit
+    onNavigateToBattery: () -> Unit,
+    vaultState: SecurityVaultState = SecurityVaultState(),
+    securityUi: SecurityUiState = SecurityUiState(),
+    onNavigateToSecurity: () -> Unit = {}
 ) {
     val lux = LocalLuxuryColors.current
     val active = bluetoothState.activeDevice
@@ -123,6 +133,56 @@ fun DashboardScreen(
                             ConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
                     )
+                }
+            }
+
+            // Critical Security Banner when Lost Mode or Unauthorized Device Alert is active
+            if (vaultState.lostModeEnabled || securityUi.latestUnauthorizedAlert != null) {
+                item {
+                    val alert = securityUi.latestUnauthorizedAlert
+                    LiquidGlassCard(elevated = true) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Icon(
+                                    imageVector = Icons.Rounded.GppBad,
+                                    contentDescription = null,
+                                    tint = lux.statusCritical
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (vaultState.lostModeEnabled) {
+                                        "LOST MODE ACTIVE"
+                                    } else {
+                                        "UNAUTHORIZED DEVICE DETECTED"
+                                    },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = lux.statusCritical
+                                )
+                            }
+                            TelemetryBadge(text = "SECURITY ALERT", accentColor = lux.statusCritical)
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (vaultState.lostModeEnabled) {
+                                "Monitoring Bluetooth connections for ${vaultState.lostTargetDeviceName ?: "your earbuds"}. Open Security Center to view last known telemetry or deactivate."
+                            } else {
+                                "Unknown Bluetooth device '${alert?.deviceName ?: "Unknown"}' (${alert?.deviceAddress ?: "No MAC"}) connected. Review in Security Center."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        MetallicPillButton(
+                            text = "Open Security Center",
+                            icon = Icons.Rounded.Security,
+                            onClick = onNavigateToSecurity,
+                            testTag = "alert_banner_security_button"
+                        )
+                    }
                 }
             }
 
@@ -413,7 +473,7 @@ fun DashboardScreen(
                         onClick = onNavigateToBattery
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.TouchApp,
+                            imageVector = Icons.Rounded.BatteryStd,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
@@ -425,6 +485,66 @@ fun DashboardScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            // Owner Security Shield Card
+            item {
+                LiquidGlassCard(elevated = true) {
+                    SectionHeaderRow(
+                        title = "Owner Security Shield",
+                        subtitle = if (vaultState.isOwnerRegistered) {
+                            "Bound to ${vaultState.boundDeviceModel} · Key ${vaultState.ownerKeyId}"
+                        } else {
+                            "Register Owner PIN, Keystore Key, No-Gmail Recovery & Lost Mode"
+                        },
+                        trailing = {
+                            TelemetryBadge(
+                                text = when {
+                                    vaultState.lostModeEnabled -> "LOST MODE"
+                                    !vaultState.isOwnerRegistered -> "SETUP NEEDED"
+                                    securityUi.isSecurityCenterUnlocked -> "UNLOCKED"
+                                    else -> "PIN LOCKED"
+                                },
+                                accentColor = when {
+                                    vaultState.lostModeEnabled -> lux.statusCritical
+                                    !vaultState.isOwnerRegistered -> lux.statusWarning
+                                    securityUi.isSecurityCenterUnlocked -> lux.statusPositive
+                                    else -> lux.telemetryAccent
+                                }
+                            )
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = if (vaultState.isOwnerRegistered) {
+                            "Owner: ${vaultState.ownerDisplayName} · ${vaultState.pinLength}-Digit PBKDF2 Lock · Unauthorized Monitor ${if (vaultState.unauthorizedDeviceAlertsEnabled) "On" else "Off"}"
+                        } else {
+                            "Protect your OnePlus Buds 3 Pro companion settings with hardware-bound Owner Key verification, Trusted Devices, and offline Recovery Key."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        MetallicPillButton(
+                            text = if (vaultState.isOwnerRegistered) "Security Center" else "Register Owner",
+                            icon = if (vaultState.isOwnerRegistered) Icons.Rounded.Shield else Icons.Rounded.Lock,
+                            onClick = onNavigateToSecurity,
+                            modifier = Modifier.weight(1f),
+                            testTag = "open_security_center_button"
+                        )
+                        SilverOutlinedButton(
+                            text = "Battery & Logs",
+                            icon = Icons.Rounded.BatteryStd,
+                            onClick = onNavigateToBattery,
+                            modifier = Modifier.weight(1f),
+                            testTag = "dashboard_battery_button"
                         )
                     }
                 }

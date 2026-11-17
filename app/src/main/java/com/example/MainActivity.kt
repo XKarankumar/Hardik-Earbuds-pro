@@ -6,7 +6,6 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -29,11 +28,13 @@ import androidx.compose.material.icons.outlined.BatteryStd
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.BatteryStd
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,8 +49,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -57,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -65,18 +69,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.core.PermissionManager
+import com.example.security.BiometricAuthHelper
 import com.example.ui.components.ConnectionPopupSheet
 import com.example.ui.components.ObsidianBackdrop
 import com.example.ui.navigation.BudsRoute
 import com.example.ui.screens.BatteryScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.DevicesScreen
+import com.example.ui.screens.SecurityCenterScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SplashOverlay
 import com.example.ui.screens.StudioScreen
 import com.example.ui.theme.HardikBudsProTheme
 import com.example.ui.viewmodel.BudsProViewModel
 import com.example.ui.viewmodel.MainUiActionEvent
+import kotlinx.coroutines.launch
 
 private data class NavTab(
     val route: BudsRoute,
@@ -86,9 +93,10 @@ private data class NavTab(
     val testTag: String
 )
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     private val viewModel: BudsProViewModel by viewModels()
+    private var securityDeepLinkTrigger by mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,6 +105,9 @@ class MainActivity : ComponentActivity() {
         if (intent?.getBooleanExtra("open_popup", false) == true) {
             viewModel.showConnectionPopup()
         }
+        if (intent?.getBooleanExtra("open_security", false) == true) {
+            securityDeepLinkTrigger++
+        }
 
         setContent {
             val prefs by viewModel.preferences.collectAsStateWithLifecycle()
@@ -104,7 +115,8 @@ class MainActivity : ComponentActivity() {
             HardikBudsProTheme(themeMode = prefs.themeMode) {
                 BudsProAppShell(
                     activity = this,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    securityDeepLinkTrigger = securityDeepLinkTrigger
                 )
             }
         }
@@ -120,16 +132,21 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra("open_popup", false)) {
             viewModel.showConnectionPopup()
         }
+        if (intent.getBooleanExtra("open_security", false)) {
+            securityDeepLinkTrigger++
+        }
     }
 }
 
 @Composable
 private fun BudsProAppShell(
-    activity: ComponentActivity,
-    viewModel: BudsProViewModel
+    activity: FragmentActivity,
+    viewModel: BudsProViewModel,
+    securityDeepLinkTrigger: Int
 ) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+    val uiScope = rememberCoroutineScope()
     var showSplash by rememberSaveable { mutableStateOf(true) }
 
     val prefs by viewModel.preferences.collectAsStateWithLifecycle()
@@ -144,6 +161,11 @@ private fun BudsProAppShell(
     val deviceProfiles by viewModel.deviceProfiles.collectAsStateWithLifecycle()
     val batteryLogs by viewModel.batteryLogs.collectAsStateWithLifecycle()
     val popupVisible by viewModel.isConnectionPopupVisible.collectAsStateWithLifecycle()
+
+    val vaultState by viewModel.securityManager.vaultState.collectAsStateWithLifecycle()
+    val securityUi by viewModel.securityManager.uiState.collectAsStateWithLifecycle()
+    val trustedDevices by viewModel.securityManager.trustedDevices.collectAsStateWithLifecycle()
+    val securityEvents by viewModel.securityManager.securityEvents.collectAsStateWithLifecycle()
 
     val btPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -209,12 +231,23 @@ private fun BudsProAppShell(
         }
     }
 
-    val tabs = remember {
+    val compactTabs = remember {
+        listOf(
+            NavTab(BudsRoute.Dashboard, "Hub", Icons.Rounded.Headphones, Icons.Outlined.Headphones, "nav_hub"),
+            NavTab(BudsRoute.Devices, "Devices", Icons.Rounded.Bluetooth, Icons.Outlined.Bluetooth, "nav_devices"),
+            NavTab(BudsRoute.Studio, "Studio", Icons.Rounded.Equalizer, Icons.Outlined.Equalizer, "nav_studio"),
+            NavTab(BudsRoute.Security, "Security", Icons.Rounded.Security, Icons.Outlined.Security, "nav_security"),
+            NavTab(BudsRoute.Settings, "Settings", Icons.Rounded.Settings, Icons.Outlined.Settings, "nav_settings")
+        )
+    }
+
+    val railTabs = remember {
         listOf(
             NavTab(BudsRoute.Dashboard, "Hub", Icons.Rounded.Headphones, Icons.Outlined.Headphones, "nav_hub"),
             NavTab(BudsRoute.Devices, "Devices", Icons.Rounded.Bluetooth, Icons.Outlined.Bluetooth, "nav_devices"),
             NavTab(BudsRoute.Studio, "Studio", Icons.Rounded.Equalizer, Icons.Outlined.Equalizer, "nav_studio"),
             NavTab(BudsRoute.Battery, "Battery", Icons.Rounded.BatteryStd, Icons.Outlined.BatteryStd, "nav_battery"),
+            NavTab(BudsRoute.Security, "Security", Icons.Rounded.Security, Icons.Outlined.Security, "nav_security"),
             NavTab(BudsRoute.Settings, "Settings", Icons.Rounded.Settings, Icons.Outlined.Settings, "nav_settings")
         )
     }
@@ -232,6 +265,12 @@ private fun BudsProAppShell(
         }
     }
 
+    LaunchedEffect(securityDeepLinkTrigger) {
+        if (securityDeepLinkTrigger > 0) {
+            navigateToTab(BudsRoute.Security)
+        }
+    }
+
     ObsidianBackdrop {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val useRail = maxWidth >= 600.dp
@@ -246,7 +285,7 @@ private fun BudsProAppShell(
                             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
                             windowInsets = WindowInsets.navigationBars
                         ) {
-                            tabs.forEach { tab ->
+                            compactTabs.forEach { tab ->
                                 val selected = currentDest?.hasRoute(tab.route::class) == true
                                 NavigationBarItem(
                                     selected = selected,
@@ -278,7 +317,7 @@ private fun BudsProAppShell(
                                 .statusBarsPadding()
                         ) {
                             Spacer(modifier = Modifier.weight(0.1f))
-                            tabs.forEach { tab ->
+                            railTabs.forEach { tab ->
                                 val selected = currentDest?.hasRoute(tab.route::class) == true
                                 NavigationRailItem(
                                     selected = selected,
@@ -322,7 +361,10 @@ private fun BudsProAppShell(
                                     onToggleFindEarbuds = viewModel::toggleFindEarbuds,
                                     onNavigateToDevices = { navigateToTab(BudsRoute.Devices) },
                                     onNavigateToStudio = { navigateToTab(BudsRoute.Studio) },
-                                    onNavigateToBattery = { navigateToTab(BudsRoute.Battery) }
+                                    onNavigateToBattery = { navigateToTab(BudsRoute.Battery) },
+                                    vaultState = vaultState,
+                                    securityUi = securityUi,
+                                    onNavigateToSecurity = { navigateToTab(BudsRoute.Security) }
                                 )
                             }
 
@@ -385,6 +427,109 @@ private fun BudsProAppShell(
                                 )
                             }
 
+                            composable<BudsRoute.Security> {
+                                val sec = viewModel.securityManager
+                                SecurityCenterScreen(
+                                    vaultState = vaultState,
+                                    securityUi = securityUi,
+                                    bluetoothState = btState,
+                                    trustedDevices = trustedDevices,
+                                    securityEvents = securityEvents,
+                                    onRegisterOwner = { name, pin, confirmPin, pinLen ->
+                                        sec.registerOwner(
+                                            displayName = name,
+                                            pin = pin,
+                                            confirmPin = confirmPin,
+                                            pinLength = pinLen,
+                                            initialPrimaryDevice = btState.activeDevice
+                                                ?: btState.pairedDevices.firstOrNull()
+                                        )
+                                    },
+                                    onUnlockWithPin = sec::unlockWithPin,
+                                    onTriggerBiometricUnlock = {
+                                        BiometricAuthHelper.authenticate(
+                                            activity = activity,
+                                            title = "Unlock HARDIK BUDS PRO Security",
+                                            subtitle = "Authenticate with Fingerprint or Biometric",
+                                            onSucceeded = { sec.markBiometricAuthenticated() },
+                                            onErrorOrCancelled = { msg ->
+                                                uiScope.launch { snackbarHostState.showSnackbar(msg) }
+                                            }
+                                        )
+                                    },
+                                    onLockNow = sec::lockSecurityCenter,
+                                    onSetLockSensitive = sec::setLockSensitiveSettings,
+                                    onSetBiometricEnabled = sec::setBiometricEnabled,
+                                    onSetUnauthorizedAlerts = sec::setUnauthorizedAlertsEnabled,
+                                    onChangePin = sec::changePin,
+                                    onResetPinWithRecovery = sec::resetPinWithRecoveryKey,
+                                    onRotateRecoveryKey = sec::regenerateRecoveryKeyWithVerification,
+                                    onAddTrustedDevice = { dev, pin, bio ->
+                                        sec.addTrustedDeviceWithVerification(
+                                            address = dev.address,
+                                            deviceName = dev.name,
+                                            brandName = dev.brand.displayName,
+                                            isPrimaryBuds = dev.brand.displayName.contains("OnePlus", ignoreCase = true),
+                                            pinInput = pin,
+                                            biometricVerified = bio
+                                        )
+                                    },
+                                    onRemoveTrustedDevice = { td, pin, bio ->
+                                        sec.removeTrustedDeviceWithVerification(
+                                            address = td.address,
+                                            deviceName = td.deviceName,
+                                            pinInput = pin,
+                                            biometricVerified = bio
+                                        )
+                                    },
+                                    onTransferOwnership = sec::transferOwnershipWithVerification,
+                                    onToggleLostMode = { enable, note, pin, bio ->
+                                        val active = btState.activeDevice
+                                        val histLast = deviceHistory.firstOrNull()
+                                        val targetName = active?.name ?: histLast?.name ?: "OnePlus Buds 3 Pro"
+                                        val targetAddr = active?.address ?: histLast?.address
+                                        val lastSeen = active?.batteryTelemetry?.lastUpdatedMillis
+                                            ?: histLast?.lastConnectedAt
+                                            ?: System.currentTimeMillis()
+                                        val batterySummary = active?.batteryTelemetry?.let { b ->
+                                            buildList {
+                                                b.leftPercent?.let { add("L $it%") }
+                                                b.rightPercent?.let { add("R $it%") }
+                                                b.casePercent?.let { add("Case $it%") }
+                                                if (isEmpty()) b.overallPercent?.let { add("$it%") }
+                                            }.joinToString(" · ").ifBlank { null }
+                                        }
+                                        sec.setLostMode(
+                                            enable = enable,
+                                            targetName = targetName,
+                                            targetAddress = targetAddr,
+                                            lastSeenAt = lastSeen,
+                                            batterySummary = batterySummary,
+                                            note = note,
+                                            pinInput = pin,
+                                            biometricVerified = bio
+                                        )
+                                    },
+                                    onTriggerFindChime = viewModel::toggleFindEarbuds,
+                                    onDismissUnauthorizedBanner = sec::dismissLatestUnauthorizedAlert,
+                                    onClearDisplayedKeys = sec::clearDisplayedKeys,
+                                    onClearFeedback = sec::clearFeedback,
+                                    onClearSecurityHistory = sec::clearSecurityHistory,
+                                    onRequestBiometricForApproval = { onResult ->
+                                        BiometricAuthHelper.authenticate(
+                                            activity = activity,
+                                            title = "Approve Sensitive Action",
+                                            subtitle = "Verify Owner identity via BiometricPrompt",
+                                            onSucceeded = { onResult(true) },
+                                            onErrorOrCancelled = { msg ->
+                                                onResult(false)
+                                                uiScope.launch { snackbarHostState.showSnackbar(msg) }
+                                            }
+                                        )
+                                    }
+                                )
+                            }
+
                             composable<BudsRoute.Settings> {
                                 SettingsScreen(
                                     context = activity,
@@ -414,7 +559,10 @@ private fun BudsProAppShell(
                                     },
                                     onRequestOverlayPermission = {
                                         overlaySettingsLauncher.launch(PermissionManager.buildOverlayPermissionIntent(activity))
-                                    }
+                                    },
+                                    vaultState = vaultState,
+                                    isSecurityUnlocked = securityUi.isSecurityCenterUnlocked,
+                                    onNavigateToSecurity = { navigateToTab(BudsRoute.Security) }
                                 )
                             }
                         }

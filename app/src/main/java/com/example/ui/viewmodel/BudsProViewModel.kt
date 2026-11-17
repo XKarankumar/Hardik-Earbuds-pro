@@ -26,6 +26,7 @@ import com.example.equalizer.EqualizerController
 import com.example.equalizer.EqualizerUiState
 import com.example.notifications.BudsNotificationManager
 import com.example.notifications.ConnectionOverlayService
+import com.example.security.SecurityCenterManager
 import com.example.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +52,13 @@ class BudsProViewModel(application: Application) : AndroidViewModel(application)
     private val playerManager = app.mediaPlayerManager
     private val spatialMonitor = app.spatialAudioMonitor
     private val findEngine = app.findEarbudsEngine
+
+    val securityManager = SecurityCenterManager(
+        context = app,
+        securityPrefs = app.securityPreferencesRepository,
+        repository = repository,
+        scope = viewModelScope
+    )
 
     val preferences: StateFlow<AppPreferencesState> = prefsRepo.preferencesFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppPreferencesState())
@@ -113,6 +121,7 @@ class BudsProViewModel(application: Application) : AndroidViewModel(application)
                 when (event) {
                     is BluetoothUiEvent.DeviceConnected -> {
                         val dev = event.device
+                        securityManager.evaluateConnectedDeviceSecurity(dev)
                         repository.recordDeviceConnection(
                             address = dev.address,
                             name = dev.name,
@@ -211,6 +220,7 @@ class BudsProViewModel(application: Application) : AndroidViewModel(application)
         btManager.refreshPairedDevices()
         spatialMonitor.refresh()
         playerManager.refreshVolume()
+        securityManager.refreshCapabilities()
     }
 
     fun showConnectionPopup() {

@@ -42,6 +42,7 @@ credentials = "1.5.0"
 googleid = "1.1.1"
 media3 = "1.5.1"
 kotlinxSerializationJson = "1.8.0"
+biometric = "1.1.0"
 
 
 [libraries]
@@ -100,6 +101,7 @@ androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplaye
 androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 androidx-media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 
 
 [plugins]

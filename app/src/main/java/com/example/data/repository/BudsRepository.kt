@@ -9,6 +9,10 @@ import com.example.data.local.DeviceHistoryDao
 import com.example.data.local.DeviceHistoryEntity
 import com.example.data.local.DeviceProfileDao
 import com.example.data.local.DeviceProfileEntity
+import com.example.data.local.SecurityEventDao
+import com.example.data.local.SecurityEventEntity
+import com.example.data.local.TrustedDeviceDao
+import com.example.data.local.TrustedDeviceEntity
 import com.example.devices.BatteryTelemetry
 import com.example.devices.EarbudsBrand
 import kotlinx.coroutines.flow.Flow
@@ -20,11 +24,16 @@ class BudsRepository(
     private val deviceProfileDao: DeviceProfileDao = database.deviceProfileDao()
     private val batteryHistoryDao: BatteryHistoryDao = database.batteryHistoryDao()
     private val customEqPresetDao: CustomEqPresetDao = database.customEqPresetDao()
+    private val trustedDeviceDao: TrustedDeviceDao = database.trustedDeviceDao()
+    private val securityEventDao: SecurityEventDao = database.securityEventDao()
 
     val deviceHistory: Flow<List<DeviceHistoryEntity>> = deviceHistoryDao.observeAllHistory()
     val deviceProfiles: Flow<List<DeviceProfileEntity>> = deviceProfileDao.observeAllProfiles()
     val batteryLogs: Flow<List<BatteryHistoryEntity>> = batteryHistoryDao.observeRecentBatteryLogs()
     val customEqPresets: Flow<List<CustomEqPresetEntity>> = customEqPresetDao.observeAllPresets()
+    val trustedDevices: Flow<List<TrustedDeviceEntity>> = trustedDeviceDao.observeTrustedDevices()
+    val securityEvents: Flow<List<SecurityEventEntity>> = securityEventDao.observeAllEvents()
+    val unauthorizedAlerts: Flow<List<SecurityEventEntity>> = securityEventDao.observeUnauthorizedAlerts()
 
     suspend fun recordDeviceConnection(
         address: String,
@@ -98,6 +107,46 @@ class BudsRepository(
 
     suspend fun deleteCustomEqPreset(name: String) {
         customEqPresetDao.deleteByName(name)
+    }
+
+    suspend fun isDeviceTrusted(address: String): Boolean {
+        return trustedDeviceDao.getByAddress(address) != null
+    }
+
+    suspend fun upsertTrustedDevice(device: TrustedDeviceEntity) {
+        trustedDeviceDao.upsertTrustedDevice(device)
+    }
+
+    suspend fun removeTrustedDevice(address: String) {
+        trustedDeviceDao.deleteByAddress(address)
+    }
+
+    suspend fun clearTrustedDevices() {
+        trustedDeviceDao.clearAll()
+    }
+
+    suspend fun logSecurityEvent(
+        eventType: String,
+        title: String,
+        description: String,
+        deviceName: String? = null,
+        deviceAddress: String? = null,
+        severity: String = "INFO"
+    ) {
+        securityEventDao.insertEvent(
+            SecurityEventEntity(
+                eventType = eventType,
+                title = title,
+                description = description,
+                deviceName = deviceName,
+                deviceAddress = deviceAddress,
+                severity = severity
+            )
+        )
+    }
+
+    suspend fun clearSecurityHistory() {
+        securityEventDao.clearAll()
     }
 
     suspend fun clearAllLocalLogs() {

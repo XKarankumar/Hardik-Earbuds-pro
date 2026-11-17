@@ -13,9 +13,11 @@ object AppConstants {
     const val CHANNEL_CONNECTION = "buds_connection_alerts"
     const val CHANNEL_BATTERY = "buds_low_battery_alerts"
     const val CHANNEL_PLAYBACK = "buds_media_playback"
+    const val CHANNEL_SECURITY = "buds_security_alerts"
 
     const val NOTIF_ID_CONNECTION = 2001
     const val NOTIF_ID_BATTERY = 2002
+    const val NOTIF_ID_SECURITY = 2003
 
     // Standard Bluetooth SIG UUIDs
     val UUID_BATTERY_SERVICE: UUID = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb")

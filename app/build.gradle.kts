@@ -110,6 +110,7 @@ dependencies {
   implementation(libs.androidx.media3.session)
   implementation(libs.androidx.media3.common)
   implementation(libs.kotlinx.serialization.json)
+  implementation(libs.androidx.biometric)
   // implementation(libs.coil.compose)
   // implementation(libs.converter.moshi)
   // implementation(libs.firebase.ai)

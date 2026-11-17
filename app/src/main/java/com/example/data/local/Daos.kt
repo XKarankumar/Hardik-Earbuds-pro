@@ -65,3 +65,36 @@ interface CustomEqPresetDao {
     @Query("DELETE FROM custom_eq_presets WHERE name = :name")
     suspend fun deleteByName(name: String)
 }
+
+@Dao
+interface TrustedDeviceDao {
+    @Query("SELECT * FROM trusted_devices ORDER BY isPrimaryBuds DESC, addedAt DESC")
+    fun observeTrustedDevices(): Flow<List<TrustedDeviceEntity>>
+
+    @Query("SELECT * FROM trusted_devices WHERE address = :address LIMIT 1")
+    suspend fun getByAddress(address: String): TrustedDeviceEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTrustedDevice(device: TrustedDeviceEntity)
+
+    @Query("DELETE FROM trusted_devices WHERE address = :address")
+    suspend fun deleteByAddress(address: String)
+
+    @Query("DELETE FROM trusted_devices")
+    suspend fun clearAll()
+}
+
+@Dao
+interface SecurityEventDao {
+    @Query("SELECT * FROM security_events ORDER BY timestamp DESC LIMIT 150")
+    fun observeAllEvents(): Flow<List<SecurityEventEntity>>
+
+    @Query("SELECT * FROM security_events WHERE eventType = 'UNAUTHORIZED_DEVICE_DETECTED' ORDER BY timestamp DESC LIMIT 50")
+    fun observeUnauthorizedAlerts(): Flow<List<SecurityEventEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEvent(event: SecurityEventEntity)
+
+    @Query("DELETE FROM security_events")
+    suspend fun clearAll()
+}

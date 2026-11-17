@@ -7,6 +7,7 @@ import com.example.audio.SpatialAudioMonitor
 import com.example.bluetooth.BudsBluetoothManager
 import com.example.data.local.BudsProDatabase
 import com.example.data.preferences.AppPreferencesRepository
+import com.example.data.preferences.SecurityPreferencesRepository
 import com.example.data.repository.BudsRepository
 import com.example.notifications.BudsNotificationManager
 
@@ -17,6 +18,8 @@ class BudsProApplication : Application() {
     lateinit var repository: BudsRepository
         private set
     lateinit var preferencesRepository: AppPreferencesRepository
+        private set
+    lateinit var securityPreferencesRepository: SecurityPreferencesRepository
         private set
     lateinit var bluetoothManager: BudsBluetoothManager
         private set
@@ -32,6 +35,7 @@ class BudsProApplication : Application() {
         database = BudsProDatabase.getInstance(this)
         repository = BudsRepository(database)
         preferencesRepository = AppPreferencesRepository(this)
+        securityPreferencesRepository = SecurityPreferencesRepository(this)
         bluetoothManager = BudsBluetoothManager(this)
         mediaPlayerManager = BudsMediaPlayerManager(this)
         spatialAudioMonitor = SpatialAudioMonitor(this)

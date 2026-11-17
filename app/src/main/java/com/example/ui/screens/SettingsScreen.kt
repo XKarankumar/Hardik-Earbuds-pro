@@ -31,6 +31,7 @@ import com.example.core.AppConstants
 import com.example.core.PermissionManager
 import com.example.core.PermissionStatusSnapshot
 import com.example.data.preferences.AppPreferencesState
+import com.example.data.preferences.SecurityVaultState
 import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.SectionHeaderRow
 import com.example.ui.components.SilverOutlinedButton
@@ -54,7 +55,10 @@ fun SettingsScreen(
     onClearLocalLogs: () -> Unit,
     onRequestBluetoothPermissions: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
-    onRequestOverlayPermission: () -> Unit
+    onRequestOverlayPermission: () -> Unit,
+    vaultState: SecurityVaultState = SecurityVaultState(),
+    isSecurityUnlocked: Boolean = true,
+    onNavigateToSecurity: () -> Unit = {}
 ) {
     val lux = LocalLuxuryColors.current
 
@@ -202,31 +206,67 @@ fun SettingsScreen(
 
             // Security & Privacy
             item {
+                val pinGateLocked = vaultState.isOwnerRegistered &&
+                    vaultState.lockSensitiveSettingsWithPin &&
+                    !isSecurityUnlocked
                 LiquidGlassCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Rounded.Security,
-                            contentDescription = null,
-                            tint = lux.statusPositive
-                        )
-                        Spacer(modifier = Modifier.widthIn(min = 8.dp))
-                        Text("Security & Privacy", style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Rounded.Security,
+                                contentDescription = null,
+                                tint = if (pinGateLocked) lux.statusWarning else lux.statusPositive
+                            )
+                            Spacer(modifier = Modifier.widthIn(min = 8.dp))
+                            Text("Security & Privacy", style = MaterialTheme.typography.titleMedium)
+                        }
+                        if (pinGateLocked) {
+                            TelemetryBadge(text = "PIN LOCKED", accentColor = lux.statusWarning)
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     SettingSwitchRow(
                         title = "Strict Local-Only Mode",
-                        subtitle = "Zero internet telemetry, zero analytics, Room & DataStore only",
+                        subtitle = if (pinGateLocked) {
+                            "Locked by Owner Security PIN — unlock in Security Center to modify"
+                        } else {
+                            "Zero internet telemetry, zero analytics, Room & DataStore only"
+                        },
                         checked = preferences.localOnlyPrivacyEnabled,
-                        onCheckedChange = onSetLocalOnlyPrivacy,
+                        onCheckedChange = { enabled ->
+                            if (pinGateLocked) {
+                                onNavigateToSecurity()
+                            } else {
+                                onSetLocalOnlyPrivacy(enabled)
+                            }
+                        },
                         testTag = "setting_local_only"
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     SilverOutlinedButton(
-                        text = "Clear Local Device & Battery History",
+                        text = if (pinGateLocked) "Unlock Security Center to Clear Logs" else "Clear Local Device & Battery History",
                         icon = Icons.Rounded.DeleteSweep,
-                        onClick = onClearLocalLogs,
+                        onClick = {
+                            if (pinGateLocked) {
+                                onNavigateToSecurity()
+                            } else {
+                                onClearLocalLogs()
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         testTag = "clear_local_logs_button"
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SilverOutlinedButton(
+                        text = "Open Owner Security Center",
+                        icon = Icons.Rounded.Security,
+                        onClick = onNavigateToSecurity,
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "settings_open_security_button"
                     )
                 }
             }

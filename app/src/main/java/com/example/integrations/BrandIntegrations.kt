@@ -21,7 +21,9 @@ object OnePlusNordBuds3ProIntegration : EarbudsIntegration {
 
     private val nameKeywords = listOf(
         "oneplus nord buds 3 pro",
+        "oneplus buds 3 pro",
         "nord buds 3 pro",
+        "buds 3 pro",
         "nord buds 3",
         "nord buds",
         "oneplus buds"
@@ -34,7 +36,7 @@ object OnePlusNordBuds3ProIntegration : EarbudsIntegration {
 
     fun isExactNordBuds3Pro(deviceName: String?): Boolean {
         val lower = deviceName?.lowercase().orEmpty()
-        return lower.contains("nord buds 3 pro")
+        return lower.contains("buds 3 pro")
     }
 
     override fun describeCapabilities(
